@@ -306,12 +306,14 @@ const CATEGORIES = [
   { key:'bobrn_loading', label:'BOBRN Loading',
     fields:[
       {key:'emptyRakeName', label:'Empty Rake Name', type:'text'},
+      {key:'sidingName', label:'Siding Name', type:'text'},
       {key:'loadRakeName', label:'Load Rake Name', type:'text'},
       {key:'placement', label:'Placement', type:'dt'},
       {key:'loadingComplete', label:'Loading Complete', type:'dt'},
     ],
     keyField:'emptyRakeName',
-    quad:{ tl:['emptyRakeName'], tr:['placement'], bl:['loadRakeName'], br:['loadingComplete'] },
+    sidingField:'sidingName',
+    quad:{ tl:['emptyRakeName','sidingName'], tr:['placement'], bl:['loadRakeName'], br:['loadingComplete'] },
     stages:[
       {f:'placement', label:'Placed', cls:'pill-s2'},
       {f:'loadingComplete', label:'Load Complete', cls:'pill-s4'},
@@ -320,12 +322,14 @@ const CATEGORIES = [
   { key:'nbox_loading', label:'NBOX Loading',
     fields:[
       {key:'emptyRakeName', label:'Empty Rake Name', type:'text'},
+      {key:'sidingName', label:'Siding Name', type:'text'},
       {key:'loadRakeName', label:'Load Rake Name', type:'text'},
       {key:'placement', label:'Placement', type:'dt'},
       {key:'loadingComplete', label:'Loading Complete', type:'dt'},
     ],
     keyField:'emptyRakeName',
-    quad:{ tl:['emptyRakeName'], tr:['placement'], bl:['loadRakeName'], br:['loadingComplete'] },
+    sidingField:'sidingName',
+    quad:{ tl:['emptyRakeName','sidingName'], tr:['placement'], bl:['loadRakeName'], br:['loadingComplete'] },
     stages:[
       {f:'placement', label:'Placed', cls:'pill-s2'},
       {f:'loadingComplete', label:'Load Complete', cls:'pill-s4'},
@@ -339,6 +343,7 @@ const CATEGORIES = [
       {key:'loadingComplete', label:'Loading Complete', type:'dt'},
     ],
     keyField:'rakeName',
+    sidingField:'sidingCode',
     quad:{ tl:['sidingCode'], tr:['placement'], bl:['rakeName'], br:['loadingComplete'] },
     stages:[
       {f:'placement', label:'Placed', cls:'pill-s2'},
@@ -353,6 +358,7 @@ const CATEGORIES = [
       {key:'loadingComplete', label:'Loading Complete', type:'dt'},
     ],
     keyField:'rakeName',
+    sidingField:'sidingCode',
     quad:{ tl:['sidingCode'], tr:['placement'], bl:['rakeName'], br:['loadingComplete'] },
     stages:[
       {f:'placement', label:'Placed', cls:'pill-s2'},
@@ -895,12 +901,15 @@ function renderLoadingSummaryCard(cat){
   shown.sort((a,b)=>((a.loadingComplete||a.placement)||'').localeCompare((b.loadingComplete||b.placement)||''));
   const rows = shown.length===0
     ? `<div class="rel-empty" style="padding:14px 16px;">No entries placed yet</div>`
-    : shown.map((r,i)=>`<div class="rel-row" style="padding:7px 16px;">
+    : shown.map((r,i)=>{
+        const siding = cat.sidingField ? (r[cat.sidingField]||'—') : null;
+        return `<div class="rel-row" style="padding:7px 16px;">
         <span class="rel-num">${i+1}.</span>
-        <span class="rel-name">${r[cat.keyField]||'—'}</span>
+        <span class="rel-name">${r[cat.keyField]||'—'}${siding ? ` <span class="dim" style="font-size:10.5px;font-weight:500;">[${siding}]</span>` : ''}</span>
         <span class="rel-time">P: <b>${fmtSmart(r.placement)}</b></span>
         <span class="rel-time">L: <b>${fmtSmart(r.loadingComplete)}</b></span>
-      </div>`).join('');
+      </div>`;
+      }).join('');
   return `<div class="summary-card">
     <div class="summary-head"><span class="name">${cat.label}</span><span class="count">${completedCount} completed</span></div>
     <div class="summary-body">${rows}</div>
@@ -1031,7 +1040,9 @@ function loadingLines(cat){
   if(shown.length===0) lines.push({text:'No entries yet', size:9, color:[160,160,160], gap:5});
   shown.forEach((r,i)=>{
     const p = pdfTime(r.placement), l = pdfTime(r.loadingComplete);
-    lines.push({text:`${i+1}.  ${r[cat.keyField]||'—'}`, cols:[`P: ${p||'--'}`, `L: ${l||'--'}`], size:9, gap:5, indent:10, zebra:i%2===1});
+    const siding = cat.sidingField ? (r[cat.sidingField]||'—') : null;
+    const nameText = siding ? `${r[cat.keyField]||'—'}  [${siding}]` : (r[cat.keyField]||'—');
+    lines.push({text:`${i+1}.  ${nameText}`, cols:[`P: ${p||'--'}`, `L: ${l||'--'}`], size:9, gap:5, indent:10, zebra:i%2===1});
   });
   return lines;
 }
