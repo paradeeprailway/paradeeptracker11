@@ -690,7 +690,8 @@ async function saveRecord(cat){
   renderBoard(cat);
   renderSummary();
   showToast(isNew ? `${keyVal} added to ${cat.label}` : `${keyVal} updated in ${cat.label}`);
-  saveRecordToServer(cat.key, cat.keyField, rec);
+  const savePromise = saveRecordToServer(cat.key, cat.keyField, rec);
+  trackPendingSave(savePromise);
   clearForm(cat);
 }
 
@@ -1190,7 +1191,7 @@ async function deleteRecord(catKey, recId){
   renderBoard(cat);
   renderSummary();
   showToast(`${label} deleted from ${cat.label}`);
-  deleteRecordFromServer(catKey, recId);
+  trackPendingSave(deleteRecordFromServer(catKey, recId));
 }
 
 document.addEventListener('click', (e)=>{
@@ -1231,20 +1232,30 @@ function tickClock(){
 setInterval(tickClock, 1000); tickClock();
 
 // ---------------- Live polling ----------------
+let pendingSaves = [];
+function trackPendingSave(promise){
+  pendingSaves.push(promise);
+  promise.finally(()=>{ pendingSaves = pendingSaves.filter(p=>p!==promise); });
+}
+
 let lastSyncTime = Date.now();
 async function refreshLoop(){
+  // Wait for any save/delete still in flight before pulling fresh data —
+  // otherwise a refresh landing in that brief gap could show stale data and
+  // make a just-saved entry appear to vanish.
+  if(pendingSaves.length > 0) await Promise.all(pendingSaves).catch(()=>{});
   await loadData();
   renderAllBoards();
   if(document.getElementById('page-summary').classList.contains('active')) renderSummary();
   lastSyncTime = Date.now();
 }
-setInterval(refreshLoop, 5000);
+setInterval(refreshLoop, 30000);
 setInterval(()=>{
   const el = document.getElementById('last-sync');
   if(!el) return;
   const secs = Math.round((Date.now()-lastSyncTime)/1000);
   el.textContent = secs < 3 ? 'just now' : `${secs}s ago`;
-  el.style.color = secs > 20 ? '#e07a6f' : '#7A8B93';
+  el.style.color = secs > 45 ? '#e07a6f' : '#7A8B93';
 }, 1000);
 
 // Force an immediate refresh the moment the tab/window regains focus —
