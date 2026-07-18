@@ -446,7 +446,7 @@ async function loadData(){
     return;
   }
   try{
-    const res = await fetch(API_URL, { method:'GET' });
+    const res = await fetch(`${API_URL}?t=${Date.now()}`, { method:'GET', cache:'no-store' });
     const parsed = await res.json();
     CATEGORIES.forEach(c => DATA[c.key] = parsed[c.key] || []);
   }catch(e){
@@ -462,6 +462,7 @@ async function saveRecordToServer(catKey, keyField, record){
   try{
     await fetch(API_URL, {
       method:'POST',
+      cache:'no-store',
       body: JSON.stringify({ category: catKey, keyField: keyField, record: record })
     });
     return true;
@@ -476,6 +477,7 @@ async function deleteRecordFromServer(catKey, id){
   try{
     await fetch(API_URL, {
       method:'POST',
+      cache:'no-store',
       body: JSON.stringify({ category: catKey, action:'delete', id: id })
     });
     return true;
