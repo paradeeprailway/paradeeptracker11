@@ -448,7 +448,22 @@ async function loadData(){
   try{
     const res = await fetch(API_URL, { method:'GET' });
     const parsed = await res.json();
-    CATEGORIES.forEach(c => DATA[c.key] = parsed[c.key] || []);
+    const RECENT_GRACE_MS = 60000; // protect any record saved in the last 60s
+    const now = Date.now();
+    CATEGORIES.forEach(c => {
+      const fetched = parsed[c.key] || [];
+      const fetchedIds = new Set(fetched.map(r=>r.id));
+      // If the server's response is momentarily missing something we just
+      // saved (network timing, a slow write, etc.), don't let it flicker off
+      // the screen — keep it visible until the server confirms it, up to a
+      // 60-second grace window, after which we trust the server either way.
+      const recentlyMissing = (DATA[c.key]||[]).filter(r=>{
+        if(fetchedIds.has(r.id)) return false;
+        const updated = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
+        return (now - updated) < RECENT_GRACE_MS;
+      });
+      DATA[c.key] = fetched.concat(recentlyMissing);
+    });
   }catch(e){
     showToast('Could not reach the data source — check your internet connection');
   }
